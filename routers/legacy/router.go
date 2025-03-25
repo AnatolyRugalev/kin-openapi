@@ -64,7 +64,8 @@ func NewRouter(doc *openapi3.T, opts ...openapi3.ValidationOption) (routers.Rout
 	}
 	router := &Router{doc: doc}
 	root := router.node()
-	for path, pathItem := range doc.Paths.Map() {
+	for _, path := range doc.Paths.InMatchingOrder() {
+		pathItem := doc.Paths.Value(path)
 		for method, operation := range pathItem.Operations() {
 			method = strings.ToUpper(method)
 			if err := root.Add(method+" "+path, &routers.Route{
