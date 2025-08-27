@@ -1302,9 +1302,16 @@ func (schema *Schema) visitXOFOperations(settings *schemaValidationSettings, val
 		var discriminatorRef string
 		if schema.Discriminator != nil {
 			pn := schema.Discriminator.PropertyName
+			isRequired := false
+			for _, rn := range schema.Required {
+				if rn == pn {
+					isRequired = true
+					break
+				}
+			}
 			if valuemap, okcheck := value.(map[string]any); okcheck {
-				discriminatorVal, okcheck := valuemap[pn]
-				if !okcheck {
+				discriminatorVal, hasDiscriminator := valuemap[pn]
+				if !hasDiscriminator && isRequired {
 					return &SchemaError{
 						Schema:      schema,
 						SchemaField: "discriminator",
@@ -1312,23 +1319,25 @@ func (schema *Schema) visitXOFOperations(settings *schemaValidationSettings, val
 					}, false
 				}
 
-				discriminatorValString, okcheck := discriminatorVal.(string)
-				if !okcheck {
-					return &SchemaError{
-						Value:       discriminatorVal,
-						Schema:      schema,
-						SchemaField: "discriminator",
-						Reason:      fmt.Sprintf("value of discriminator property %q is not a string", pn),
-					}, false
-				}
+				if hasDiscriminator {
+					discriminatorValString, okcheck := discriminatorVal.(string)
+					if !okcheck {
+						return &SchemaError{
+							Value:       discriminatorVal,
+							Schema:      schema,
+							SchemaField: "discriminator",
+							Reason:      fmt.Sprintf("value of discriminator property %q is not a string", pn),
+						}, false
+					}
 
-				if discriminatorRef, okcheck = schema.Discriminator.Mapping[discriminatorValString]; len(schema.Discriminator.Mapping) > 0 && !okcheck {
-					return &SchemaError{
-						Value:       discriminatorVal,
-						Schema:      schema,
-						SchemaField: "discriminator",
-						Reason:      fmt.Sprintf("discriminator property %q has invalid value", pn),
-					}, false
+					if discriminatorRef, okcheck = schema.Discriminator.Mapping[discriminatorValString]; len(schema.Discriminator.Mapping) > 0 && !okcheck {
+						return &SchemaError{
+							Value:       discriminatorVal,
+							Schema:      schema,
+							SchemaField: "discriminator",
+							Reason:      fmt.Sprintf("discriminator property %q has invalid value", pn),
+						}, false
+					}
 				}
 			}
 		}
